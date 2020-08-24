@@ -69,6 +69,7 @@ const DrawingCanvas: React.FC = () => {
     const previousMatrix = useRef({ x: 0, y: 0 });
     const latestMouseEventType = useRef<string>('');
     const canvasHistories = useRef<string[]>([]);
+    const [drawn, setDrawn] = useState<boolean>(false);
 
     const saveCurrentCanvas = () => {
         const currentCanvasRef = canvasRef.current;
@@ -88,6 +89,9 @@ const DrawingCanvas: React.FC = () => {
             if (canvasContext != null) {
                 canvasHistories.current.pop()
                 console.log(canvasHistories.current);
+                if (canvasHistories.current.length === 1) {
+                    setDrawn(false);
+                }
                 const canvasHistoryData = new Image();
                 canvasHistoryData.crossOrigin = '*';
                 canvasHistoryData.src = canvasHistories.current[canvasHistories.current.length - 1];
@@ -144,8 +148,8 @@ const DrawingCanvas: React.FC = () => {
             if (canvasContext != null) {
                 img.onload = _ => {
                     canvasContext.drawImage(img, 0, 0, canvasSize.width, canvasSize.height);
+                    canvasHistories.current.push(currentCanvasRef.toDataURL('image/png'));
                 };
-                saveCurrentCanvas();
             }
             currentCanvasRef.addEventListener('mousedown', drawLine);
             currentCanvasRef.addEventListener('mousemove', drawLine);
@@ -173,6 +177,9 @@ const DrawingCanvas: React.FC = () => {
         const drawing = alreadyClicked && eventType === 'mousemove';
         const endDrawing = alreadyClicked && terminateDrawing;
         if (startDrawing) {
+            if (!drawn) {
+                setDrawn(true);
+            }
             latestMouseEventType.current = eventType;
             previousMatrix.current = eventMatrix;
         } else if (drawing) {
@@ -223,6 +230,7 @@ const DrawingCanvas: React.FC = () => {
                     style={{ color: 'white' }}
                     onClick={() => onClickUndo()}
                     variant='contained'
+                    disabled={!drawn}
                 >
                     Undo
                 </Button>
