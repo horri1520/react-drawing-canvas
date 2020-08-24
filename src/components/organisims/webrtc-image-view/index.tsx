@@ -89,9 +89,12 @@ const DrawingCanvas: React.FC = () => {
                 canvasHistories.current.pop()
                 console.log(canvasHistories.current);
                 const canvasHistoryData = new Image();
+                canvasHistoryData.crossOrigin = '*';
                 canvasHistoryData.src = canvasHistories.current[canvasHistories.current.length - 1];
                 canvasContext.clearRect(0, 0, canvasSize.width, canvasSize.height);
-                canvasContext.drawImage(canvasHistoryData, 0, 0, canvasSize.width, canvasSize.height);
+                canvasHistoryData.onload = _ => {
+                    canvasContext.drawImage(canvasHistoryData, 0, 0, canvasSize.width, canvasSize.height);
+                }
             }
         }
     };
@@ -139,7 +142,9 @@ const DrawingCanvas: React.FC = () => {
         if (currentCanvasRef != null) {
             const canvasContext = currentCanvasRef.getContext('2d');
             if (canvasContext != null) {
-                canvasContext.drawImage(img, 0, 0, canvasSize.width, canvasSize.height);
+                img.onload = _ => {
+                    canvasContext.drawImage(img, 0, 0, canvasSize.width, canvasSize.height);
+                };
                 saveCurrentCanvas();
             }
             currentCanvasRef.addEventListener('mousedown', drawLine);
