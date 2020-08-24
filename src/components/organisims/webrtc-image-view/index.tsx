@@ -59,7 +59,7 @@ const useStyles = makeStyles({
     },
 })
 
-const imgSrc = 'https://synqdevstorage.blob.core.windows.net/group-54/screenshot-54-2020-06-22_06-33-46-1592818426555?sv=2019-02-02&st=2020-08-23T14:04:19Z&se=2020-08-23T15:04:18Z&sr=c&sp=racw&spr=https&sig=N4UHhjBaFVhvumPpid9otOFbZe4%2BEF%2BnNBxukGKYyxE='
+const imgSrc = ''
 
 const DrawingCanvas: React.FC = () => {
 
