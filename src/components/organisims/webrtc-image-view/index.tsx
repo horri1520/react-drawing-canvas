@@ -1,4 +1,4 @@
-import { makeStyles, IconButton } from "@material-ui/core";
+import { makeStyles, IconButton, Button } from "@material-ui/core";
 import React, { useEffect, useRef, useState } from "react";
 
 const useStyles = makeStyles({
@@ -66,6 +66,41 @@ const DrawingCanvas: React.FC = () => {
     const classes = useStyles();
     const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
+    const previousMatrix = useRef({ x: 0, y: 0 });
+    const latestMouseEventType = useRef<string>('');
+    const canvasHistories = useRef<string[]>([]);
+
+    const saveCurrentCanvas = () => {
+        const currentCanvasRef = canvasRef.current;
+        if (currentCanvasRef != null) {
+            const currentCanvas = currentCanvasRef.toDataURL('image/png');
+            if (currentCanvas !== 'data:,') {
+                canvasHistories.current.push(currentCanvas);
+                console.log(canvasHistories.current);
+            }
+        }
+    }
+
+    const onClickUndo = () => {
+        const currentCanvasRef = canvasRef.current;
+        if (currentCanvasRef != null) {
+            const canvasContext = currentCanvasRef.getContext('2d');
+            if (canvasContext != null) {
+                canvasHistories.current.pop()
+                console.log(canvasHistories.current);
+                const canvasHistoryData = new Image();
+                canvasHistoryData.src = canvasHistories.current[canvasHistories.current.length - 1];
+                canvasContext.clearRect(0, 0, canvasSize.width, canvasSize.height);
+                canvasContext.drawImage(canvasHistoryData, 0, 0, canvasSize.width, canvasSize.height);
+            }
+        }
+    };
+
+    const colors = { red: '#ff6347', yellow: '#ffdc00', green: '#3cb37a' };
+    const color = useRef<string>(colors.red);
+    const onClickColorSelector = (newColor: string) => {
+        color.current = newColor;
+    }
 
     const img = new Image();
     img.crossOrigin = '*';
@@ -100,26 +135,99 @@ const DrawingCanvas: React.FC = () => {
 
     useEffect(() => {
         console.log(canvasSize);
-        if (canvasRef.current != null) {
-            const canvasContext = canvasRef.current.getContext('2d');
+        const currentCanvasRef = canvasRef.current;
+        if (currentCanvasRef != null) {
+            const canvasContext = currentCanvasRef.getContext('2d');
             if (canvasContext != null) {
                 canvasContext.drawImage(img, 0, 0, canvasSize.width, canvasSize.height);
+                saveCurrentCanvas();
+            }
+            currentCanvasRef.addEventListener('mousedown', drawLine);
+            currentCanvasRef.addEventListener('mousemove', drawLine);
+            currentCanvasRef.addEventListener('mouseout', drawLine);
+            currentCanvasRef.addEventListener('mouseup', drawLine);
+        }
+        return () => {
+            if (currentCanvasRef != null) {
+                currentCanvasRef.removeEventListener('mousedown', drawLine);
+                currentCanvasRef.removeEventListener('mousemove', drawLine);
+                currentCanvasRef.removeEventListener('mouseout', drawLine);
+                currentCanvasRef.removeEventListener('mouseup', drawLine);
             }
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [canvasSize])
 
+    const drawLine = (event: MouseEvent) => {
+        const eventType = event.type;
+        const eventMatrix = { x: event.offsetX, y: event.offsetY };
+
+        const alreadyClicked = latestMouseEventType.current === 'mousedown';
+        const terminateDrawing = eventType === 'mouseout' || eventType === 'mouseup';
+        const startDrawing = eventType === 'mousedown';
+        const drawing = alreadyClicked && eventType === 'mousemove';
+        const endDrawing = alreadyClicked && terminateDrawing;
+        if (startDrawing) {
+            latestMouseEventType.current = eventType;
+            previousMatrix.current = eventMatrix;
+        } else if (drawing) {
+            const currentCanvasRef = canvasRef.current;
+            if (currentCanvasRef != null) {
+                const canvasContext = currentCanvasRef.getContext('2d');
+                if (canvasContext != null) {
+                    canvasContext.lineCap = 'round';
+                    canvasContext.lineWidth = 7;
+                    canvasContext.strokeStyle = color.current;
+                    canvasContext.beginPath();
+                    canvasContext.moveTo(
+                      previousMatrix.current.x,
+                      previousMatrix.current.y
+                    );
+                    canvasContext.lineTo(eventMatrix.x, eventMatrix.y);
+                    canvasContext.stroke();
+                    previousMatrix.current = eventMatrix;
+                }
+            }
+        } else if (endDrawing) {
+            const currentCanvasRef = canvasRef.current;
+            if (currentCanvasRef != null) {
+                latestMouseEventType.current = eventType;
+                saveCurrentCanvas();
+            }
+        }
+    }
+
     return (
         <div className={classes.root}>
             <div className={classes.buttonsWrapper}>
                 <div className={classes.colorSelectorsWrapper}>
-                    <IconButton className={`${classes.colorSelector} ${classes.redSelector}`} />
-                    <IconButton className={`${classes.colorSelector} ${classes.yellowSelector}`} />
-                    <IconButton className={`${classes.colorSelector} ${classes.greenSelector}`} />
+                    <IconButton
+                        className={`${classes.colorSelector} ${classes.redSelector}`}
+                        onClick={() => onClickColorSelector(colors.red)}
+                    />
+                    <IconButton
+                        className={`${classes.colorSelector} ${classes.yellowSelector}`}
+                        onClick={() => onClickColorSelector(colors.yellow)}
+                    />
+                    <IconButton
+                        className={`${classes.colorSelector} ${classes.greenSelector}`}
+                        onClick={() => onClickColorSelector(colors.green)}
+                    />
                 </div>
+                <Button
+                    style={{ color: 'white' }}
+                    onClick={() => onClickUndo()}
+                    variant='contained'
+                >
+                    Undo
+                </Button>
             </div>
             <div className={classes.canvasWrapper}>
-                <canvas ref={canvasRef} width={canvasSize.width} height={canvasSize.height} />
+                <canvas
+                    ref={canvasRef}
+                    width={canvasSize.width}
+                    height={canvasSize.height}
+                />
             </div>
         </div>
     );
