@@ -66,35 +66,35 @@ const DrawingCanvas: React.FC = () => {
     const classes = useStyles();
     const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const previousMatrix = useRef({ x: 0, y: 0 });
-    const latestMouseEventType = useRef<string>('');
-    const canvasHistories = useRef<string[]>([]);
+    // const previousMatrix = useRef({ x: 0, y: 0 });
+    // const latestMouseEventType = useRef<string>('');
+    // const canvasHistories = useRef<string[]>([]);
+    const [drawingHistories, updateDrawingHistories] = useState<{type: string, x: number, y: number}[][]>([]);
+    const drawing = useRef<boolean>(false);
 
-    const saveCurrentCanvas = () => {
-        const currentCanvasRef = canvasRef.current;
-        if (currentCanvasRef != null) {
-            const currentCanvas = currentCanvasRef.toDataURL('image/png');
-            if (currentCanvas !== 'data:,') {
-                canvasHistories.current.push(currentCanvas);
-                console.log(canvasHistories.current);
-            }
-        }
-    }
+    // const saveCurrentCanvas = () => {
+    //     const currentCanvasRef = canvasRef.current;
+    //     if (currentCanvasRef != null) {
+    //         const currentCanvas = currentCanvasRef.toDataURL('image/png');
+    //         if (currentCanvas !== 'data:,') {
+    //             canvasHistories.current.push(currentCanvas);
+    //         }
+    //     }
+    // }
 
-    const onClickUndo = () => {
-        const currentCanvasRef = canvasRef.current;
-        if (currentCanvasRef != null) {
-            const canvasContext = currentCanvasRef.getContext('2d');
-            if (canvasContext != null) {
-                canvasHistories.current.pop()
-                console.log(canvasHistories.current);
-                const canvasHistoryData = new Image();
-                canvasHistoryData.src = canvasHistories.current[canvasHistories.current.length - 1];
-                canvasContext.clearRect(0, 0, canvasSize.width, canvasSize.height);
-                canvasContext.drawImage(canvasHistoryData, 0, 0, canvasSize.width, canvasSize.height);
-            }
-        }
-    };
+    // const onClickUndo = () => {
+    //     const currentCanvasRef = canvasRef.current;
+    //     if (currentCanvasRef != null) {
+    //         const canvasContext = currentCanvasRef.getContext('2d');
+    //         if (canvasContext != null) {
+    //             canvasHistories.current.pop()
+    //             const canvasHistoryData = new Image();
+    //             canvasHistoryData.src = canvasHistories.current[canvasHistories.current.length - 1];
+    //             canvasContext.clearRect(0, 0, canvasSize.width, canvasSize.height);
+    //             canvasContext.drawImage(canvasHistoryData, 0, 0, canvasSize.width, canvasSize.height);
+    //         }
+    //     }
+    // };
 
     const colors = { red: '#ff6347', yellow: '#ffdc00', green: '#3cb37a' };
     const color = useRef<string>(colors.red);
@@ -140,7 +140,7 @@ const DrawingCanvas: React.FC = () => {
             const canvasContext = currentCanvasRef.getContext('2d');
             if (canvasContext != null) {
                 canvasContext.drawImage(img, 0, 0, canvasSize.width, canvasSize.height);
-                saveCurrentCanvas();
+                // saveCurrentCanvas();
             }
             currentCanvasRef.addEventListener('mousedown', drawLine);
             currentCanvasRef.addEventListener('mousemove', drawLine);
@@ -159,43 +159,99 @@ const DrawingCanvas: React.FC = () => {
     }, [canvasSize])
 
     const drawLine = (event: MouseEvent) => {
+        // {type: '', x: 0, y: 0}
         const eventType = event.type;
         const eventMatrix = { x: event.offsetX, y: event.offsetY };
 
-        const alreadyClicked = latestMouseEventType.current === 'mousedown';
-        const terminateDrawing = eventType === 'mouseout' || eventType === 'mouseup';
-        const startDrawing = eventType === 'mousedown';
-        const drawing = alreadyClicked && eventType === 'mousemove';
-        const endDrawing = alreadyClicked && terminateDrawing;
-        if (startDrawing) {
-            latestMouseEventType.current = eventType;
-            previousMatrix.current = eventMatrix;
-        } else if (drawing) {
-            const currentCanvasRef = canvasRef.current;
-            if (currentCanvasRef != null) {
-                const canvasContext = currentCanvasRef.getContext('2d');
-                if (canvasContext != null) {
-                    canvasContext.lineCap = 'round';
-                    canvasContext.lineWidth = 7;
-                    canvasContext.strokeStyle = color.current;
-                    canvasContext.beginPath();
-                    canvasContext.moveTo(
-                      previousMatrix.current.x,
-                      previousMatrix.current.y
-                    );
-                    canvasContext.lineTo(eventMatrix.x, eventMatrix.y);
-                    canvasContext.stroke();
-                    previousMatrix.current = eventMatrix;
-                }
-            }
-        } else if (endDrawing) {
-            const currentCanvasRef = canvasRef.current;
-            if (currentCanvasRef != null) {
-                latestMouseEventType.current = eventType;
-                saveCurrentCanvas();
+        if (eventType === 'mousedown') {
+            drawing.current = true;
+        }
+
+        if (drawing.current && eventType === 'mousedown') {
+            const drawingHistory = {type: eventType, x: eventMatrix.x, y: eventMatrix.y};
+            const currentDrawingHistories = drawingHistories;
+            currentDrawingHistories.push([drawingHistory]);
+            updateDrawingHistories(currentDrawingHistories);
+        }
+
+        if (drawing.current) {
+            const drawingHistory = {type: eventType, x: eventMatrix.x, y: eventMatrix.y};
+            const currentDrawingHistories = drawingHistories;
+            currentDrawingHistories[currentDrawingHistories.length - 1].push(drawingHistory);
+            updateCanvas();
+            updateDrawingHistories(currentDrawingHistories);
+            if (eventType === 'mouseup' || eventType === 'mouseout') {
+                drawing.current = false;
             }
         }
+
+        // const alreadyClicked = latestMouseEventType.current === 'mousedown';
+        // const terminateDrawing = eventType === 'mouseout' || eventType === 'mouseup';
+        // const startDrawing = eventType === 'mousedown';
+        // const drawing = alreadyClicked && eventType === 'mousemove';
+        // const endDrawing = alreadyClicked && terminateDrawing;
+        // if (startDrawing) {
+        //     latestMouseEventType.current = eventType;
+        //     previousMatrix.current = eventMatrix;
+        // } else if (drawing) {
+        //     const currentCanvasRef = canvasRef.current;
+        //     if (currentCanvasRef != null) {
+        //         const canvasContext = currentCanvasRef.getContext('2d');
+        //         if (canvasContext != null) {
+        //             canvasContext.lineCap = 'round';
+        //             canvasContext.lineWidth = 7;
+        //             canvasContext.strokeStyle = color.current;
+        //             canvasContext.beginPath();
+        //             canvasContext.moveTo(
+        //               previousMatrix.current.x,
+        //               previousMatrix.current.y
+        //             );
+        //             canvasContext.lineTo(eventMatrix.x, eventMatrix.y);
+        //             canvasContext.stroke();
+        //             previousMatrix.current = eventMatrix;
+        //         }
+        //     }
+        // } else if (endDrawing) {
+        //     const currentCanvasRef = canvasRef.current;
+        //     if (currentCanvasRef != null) {
+        //         latestMouseEventType.current = eventType;
+        //         saveCurrentCanvas();
+        //     }
+        // }
     }
+
+    const updateCanvas = () => {
+        const currentCanvasRef = canvasRef.current;
+        if (currentCanvasRef != null) {
+            const canvasContext = currentCanvasRef.getContext('2d');
+            if (canvasContext != null) {
+                // const canvasHistoryData = new Image();
+                // canvasContext.clearRect(0, 0, canvasSize.width, canvasSize.height);
+                canvasContext.lineCap = 'round';
+                canvasContext.lineWidth = 7;
+                canvasContext.strokeStyle = color.current;
+                for (let m = 0 ; m < drawingHistories.length - 1 ; m += 1) {
+                    for (let n = 0 ; n < drawingHistories[m].length - 1 ; n += 1) {
+                        canvasContext.beginPath();
+                        canvasContext.moveTo(
+                            drawingHistories[m][n].x,
+                            drawingHistories[m][n].y
+                        );
+                        canvasContext.lineTo(
+                            drawingHistories[m][n + 1].x,
+                            drawingHistories[m][n + 1].y
+                        );
+                        canvasContext.stroke();
+                        console.log(
+                            drawingHistories[m][n].x,
+                            drawingHistories[m][n].y
+                        )
+                    }
+                }
+            }
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    };
 
     return (
         <div className={classes.root}>
@@ -216,7 +272,7 @@ const DrawingCanvas: React.FC = () => {
                 </div>
                 <Button
                     style={{ color: 'white' }}
-                    onClick={() => onClickUndo()}
+                    // onClick={() => onClickUndo()}
                     variant='contained'
                 >
                     Undo
