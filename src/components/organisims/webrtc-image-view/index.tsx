@@ -1,5 +1,6 @@
 import { makeStyles, IconButton, Button } from "@material-ui/core";
 import React, { useEffect, useRef, useState } from "react";
+import imgSrc from '../../../SANY0033.jpg'
 
 const useStyles = makeStyles({
     root: {
@@ -58,8 +59,6 @@ const useStyles = makeStyles({
         },
     },
 })
-
-const imgSrc = ''
 
 const DrawingCanvas: React.FC = () => {
 
